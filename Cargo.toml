@@ -8,6 +8,7 @@ homepage = "https://github.com/med1844/py3langid_rs"
 readme = "README.md"
 
 [dependencies]
+bytemuck = "1.21.0"
 lzma-rs = "0.3.0"
 
 [dev-dependencies]
