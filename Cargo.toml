@@ -6,6 +6,7 @@ license = "MIT"
 description = "A high-performance, pure Rust port of py3langid"
 homepage = "https://github.com/med1844/py3langid_rs"
 readme = "README.md"
+exclude = ["benches/*", "convert_pkl.py", "uv.lock", "pyproject.toml"]
 
 [dependencies]
 bytemuck = "1.21.0"
