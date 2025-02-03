@@ -5,6 +5,7 @@ import numpy as np
 from pathlib import Path
 from io import BytesIO
 import lzma
+import sys
 
 
 class TkOutput:
@@ -89,7 +90,10 @@ def serialize_model(li: LanguageIdentifier, tk_output: TkOutput, out_path: Path)
 
 
 if __name__ == "__main__":
-    li = LanguageIdentifier.from_pickled_model(MODEL_FILE)
+    model_file = MODEL_FILE
+    if len(sys.argv) > 1:
+        model_file = sys.argv[1]
+    li = LanguageIdentifier.from_pickled_model(model_file)
     tk_output = TkOutput.from_ld(li)
     out_path = Path("resource/model.bin")
     out_path.parent.mkdir(exist_ok=True)

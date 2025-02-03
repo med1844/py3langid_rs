@@ -154,9 +154,9 @@ impl LanguageIdentifier {
         Self::from_lzma_bytes(File::open(path)?)
     }
 
-    pub fn new() -> io::Result<Self> {
+    pub fn new() -> Self {
         let model_bytes = include_bytes!("../resource/model.bin");
-        Self::from_lzma_bytes(Cursor::new(model_bytes))
+        Self::from_lzma_bytes(Cursor::new(model_bytes)).unwrap()
     }
 
     fn instance2fv<I: Iterator<Item = u8>>(&self, text: I) -> Vec<u16> {
@@ -210,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_classify() {
-        let li = LanguageIdentifier::new().unwrap();
+        let li = LanguageIdentifier::new();
         for (text, (exp_lang, exp_prob)) in [
             ("你是我万水千山的冒险要找的标记点", ("zh", -256.80695)),
             ("あなたの体育の先生は誰ですか?", ("ja", -376.09363)),
