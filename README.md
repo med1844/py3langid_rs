@@ -62,11 +62,19 @@ uv sync
 ### Run conversion script
 
 ```bash
-uv run convert_pkl.py path/to/your/model.plzma
+uv run convert_pkl.py path/to/your/model.plzma path/to/output/folder
 ```
 
-This would automatically create/overwrite file `model.bin` in folder `resource/`.
+This would automatically create/overwrite file `model.bin` in the output folder. Then in rust, load like this:
+
+```rust
+use py3langid_rs::LanguageIdentifier; 
+
+fn main() {
+    let li = LanguageIdentifier::from_lzma_file("path/to/output/folder/model.bin").unwrap();
+    println("{:?}", li.classify("This text is in English."));
+}
+```
 
 </details>
-
 

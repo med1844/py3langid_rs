@@ -91,10 +91,11 @@ def serialize_model(li: LanguageIdentifier, tk_output: TkOutput, out_path: Path)
 
 if __name__ == "__main__":
     model_file = MODEL_FILE
-    if len(sys.argv) > 1:
+    out_path = Path("resource/model.bin")
+    if len(sys.argv) > 2:
         model_file = sys.argv[1]
+        output_path = Path(sys.argv[2]) / "model.bin"
     li = LanguageIdentifier.from_pickled_model(model_file)
     tk_output = TkOutput.from_ld(li)
-    out_path = Path("resource/model.bin")
     out_path.parent.mkdir(exist_ok=True)
     serialize_model(li, tk_output, out_path)
