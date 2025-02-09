@@ -12,6 +12,10 @@ exclude = ["benches/*", "convert_pkl.py", "uv.lock", "pyproject.toml"]
 bytemuck = "1.21.0"
 lzma-rs = "0.3.0"
 
+[features]
+embedded_model = []
+default = ["embedded_model"]
+
 [dev-dependencies]
 criterion = "0.5.1"
 

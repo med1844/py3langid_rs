@@ -39,10 +39,11 @@ fn main() {
     // normalization of probabilities to an interval between 0 and 1
     let li = LanguageIdentifier::new().with_norm_probs(true);
     println("{:?}", li.classify("This text is in English."));
+    // should print `("en", 1.0)`
 }    
 ```
 
-Should print `("en", 1.0)`.
+### Language subset
 
 ```rust
 use py3langid_rs::LanguageIdentifier; 
@@ -50,12 +51,13 @@ use py3langid_rs::LanguageIdentifier;
 fn main() {
     let li = LanguageIdentifier::new()
         .with_norm_probs(true)
-        .with_langs(["fr", "it", "tr"].into_iter());
+        .with_langs(["fr", "it", "tr"]);
     println("{:?}", li.classify("This won't be recognized properly."));
+    // should print `("it", 0.97038305)`
 }
 ```
 
-Should print `("it", 0.97038305)`.
+Note that `with_langs` takes any container that implements `IntoIterator<Item = &str>`.
 
 </details>
 
@@ -111,3 +113,12 @@ fn main() {
 
 </details>
 
+### Reduce binary size
+
+By default, the language identification model is embedded directly into the compiled binary with "embedded_model" feature enabled. To reduce the binary size, you can disable this default behavior and load the model from an external file instead. This is done by removing the default features when adding the crate:
+
+```bash
+cargo add py3langid_rs --no-default-features
+```
+
+When using this approach, you'll need to provide the model file separately and load it using `LanguageIdentifier::from_lzma_file` as shown in the custom model section above. `LanguageIdentifier::new` would become unavailable.

@@ -150,12 +150,13 @@ impl LanguageIdentifier {
         Self::from_lzma_bytes(File::open(path)?)
     }
 
+    #[cfg(feature = "embedded_model")]
     pub fn new() -> Self {
         let model_bytes = include_bytes!("../resource/model.bin");
         Self::from_lzma_bytes(Cursor::new(model_bytes)).unwrap()
     }
 
-    pub fn with_langs<'s, I: Iterator<Item = &'s str>>(self, langs: I) -> Self {
+    pub fn with_langs<'s, I: IntoIterator<Item = &'s str>>(self, langs: I) -> Self {
         let mut lang_mask = self.lang_mask;
         for v in lang_mask.iter_mut() {
             *v = false;
@@ -283,7 +284,7 @@ mod tests {
     fn test_classify_target_langs() {
         let li = LanguageIdentifier::new()
             .with_norm_probs(true)
-            .with_langs(["fr", "it", "tr"].into_iter());
+            .with_langs(["fr", "it", "tr"]);
         for (text, (exp_lang, exp_prob)) in
             [("This won't be recognized properly.", ("it", 0.97038305))]
         {
