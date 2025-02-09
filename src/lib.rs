@@ -69,6 +69,8 @@ pub struct LanguageIdentifier {
     tk_nextmove: Vec<u16>,
     tk_output: TkOutput,
     num_feats: u32,
+    norm_probs: bool,
+    lang_mask: Vec<bool>,
 }
 
 impl LanguageIdentifier {
@@ -122,6 +124,8 @@ impl LanguageIdentifier {
         let values = read_u16_vec(&mut r, n_elem)?;
         let tk_output = TkOutput { offsets, values };
 
+        let lang_mask = vec![true; nb_classes.len()];
+
         Ok(Self {
             nb_classes,
             nb_pc,
@@ -129,6 +133,8 @@ impl LanguageIdentifier {
             tk_nextmove,
             tk_output,
             num_feats,
+            norm_probs: false,
+            lang_mask,
         })
     }
 
@@ -147,6 +153,23 @@ impl LanguageIdentifier {
     pub fn new() -> Self {
         let model_bytes = include_bytes!("../resource/model.bin");
         Self::from_lzma_bytes(Cursor::new(model_bytes)).unwrap()
+    }
+
+    pub fn with_langs<'s, I: Iterator<Item = &'s str>>(self, langs: I) -> Self {
+        let mut lang_mask = self.lang_mask;
+        for v in lang_mask.iter_mut() {
+            *v = false;
+        }
+        for lang in langs {
+            if let Some(i) = &self.nb_classes.iter().position(|v| v == lang) {
+                lang_mask[*i] = true;
+            }
+        }
+        Self { lang_mask, ..self }
+    }
+
+    pub fn with_norm_probs(self, norm_probs: bool) -> Self {
+        Self { norm_probs, ..self }
     }
 
     fn instance2fv<I: Iterator<Item = u8>>(&self, text: I) -> Vec<u16> {
@@ -177,12 +200,34 @@ impl LanguageIdentifier {
         pdc
     }
 
+    fn compute_softmax(&self, pd: &[f32]) -> Vec<f32> {
+        pd.iter()
+            .map(|vi| {
+                1.0 / pd
+                    .iter()
+                    .zip(self.lang_mask.iter())
+                    .filter(|(_, lang_enabled)| **lang_enabled)
+                    .map(|(vj, _)| (vj - vi).exp())
+                    .sum::<f32>()
+            })
+            .collect()
+    }
+
+    fn apply_norm_probs(&self, probs: Vec<f32>) -> Vec<f32> {
+        match self.norm_probs {
+            true => self.compute_softmax(&probs),
+            false => probs,
+        }
+    }
+
     pub fn classify(&self, text: &str) -> (String, f32) {
         let fv = self.instance2fv(text.as_bytes().iter().copied());
-        let probs = self.nb_classprobs(fv);
+        let probs = self.apply_norm_probs(self.nb_classprobs(fv));
         let cl = probs
             .iter()
+            .zip(self.lang_mask.iter())
             .enumerate()
+            .filter(|(_, (_, m))| **m)
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Less))
             .map(|(i, _)| i)
             .unwrap();
@@ -209,6 +254,42 @@ mod tests {
             let (lang, prob) = li.classify(text);
             assert_eq!(lang, exp_lang);
             assert!(f32_is_close(prob, exp_prob, 1e-4));
+        }
+    }
+
+    #[test]
+    fn test_classify_normalized() {
+        let li = LanguageIdentifier::new().with_norm_probs(true);
+        for (text, (exp_lang, exp_prob)) in [
+            ("あな", ("ja", 1.0)),
+            ("切手", ("zh", 0.860327422618866)),
+            ("踏切", ("zh", 0.9120635986328125)),
+            ("片手", ("zh", 0.8543851375579834)),
+            ("竹内", ("zh", 0.8974676132202148)),
+            ("山田", ("zh", 0.9963976740837097)),
+            ("渋谷", ("zh", 0.9916452765464783)),
+            ("오빠", ("ko", 0.9999990463256836)),
+            ("NASA", ("en", 0.16946150362491608)),
+            ("This should be enough text", ("en", 1.0)),
+            ("This text is in English.", ("en", 1.0)),
+        ] {
+            let (lang, prob) = li.classify(text);
+            assert_eq!(lang, exp_lang);
+            assert!(f32_is_close(prob, exp_prob, 1e-6));
+        }
+    }
+
+    #[test]
+    fn test_classify_target_langs() {
+        let li = LanguageIdentifier::new()
+            .with_norm_probs(true)
+            .with_langs(["fr", "it", "tr"].into_iter());
+        for (text, (exp_lang, exp_prob)) in
+            [("This won't be recognized properly.", ("it", 0.97038305))]
+        {
+            let (lang, prob) = li.classify(text);
+            assert_eq!(lang, exp_lang);
+            assert!(f32_is_close(prob, exp_prob, 1e-6));
         }
     }
 }

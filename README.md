@@ -3,7 +3,7 @@
 A high-performance, pure Rust implementation of language identification, ported from the Python library [`py3langid`](https://github.com/adbar/py3langid).
 
 > [!NOTE]
-> This implementation contains minimum functionalities. It lacks server, probability normalization, language subset.
+> This implementation contains minimum functionalities. It lacks lang rank, server, training, etc.
 
 ## Usage
 
@@ -25,6 +25,39 @@ fn main() {
 ```
 
 Code above should print `("en", -56.77429)`.
+
+
+<details>
+  <summary>Use options (probability normalization, language subset)</summary>
+
+### Probability normalization
+
+```rust
+use py3langid_rs::LanguageIdentifier; 
+
+fn main() {
+    // normalization of probabilities to an interval between 0 and 1
+    let li = LanguageIdentifier::new().with_norm_probs(true);
+    println("{:?}", li.classify("This text is in English."));
+}    
+```
+
+Should print `("en", 1.0)`.
+
+```rust
+use py3langid_rs::LanguageIdentifier; 
+
+fn main() {
+    let li = LanguageIdentifier::new()
+        .with_norm_probs(true)
+        .with_langs(["fr", "it", "tr"].into_iter());
+    println("{:?}", li.classify("This won't be recognized properly."));
+}
+```
+
+Should print `("it", 0.97038305)`.
+
+</details>
 
 ### Performance
 
