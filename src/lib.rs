@@ -221,7 +221,7 @@ impl LanguageIdentifier {
         }
     }
 
-    pub fn classify(&self, text: &str) -> (String, f32) {
+    pub fn classify<'s>(&'s self, text: &str) -> (&'s str, f32) {
         let fv = self.instance2fv(text.as_bytes().iter().copied());
         let probs = self.apply_norm_probs(self.nb_classprobs(fv));
         let cl = probs
@@ -232,7 +232,7 @@ impl LanguageIdentifier {
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Less))
             .map(|(i, _)| i)
             .unwrap();
-        (self.nb_classes[cl].clone(), probs[cl])
+        (&self.nb_classes[cl], probs[cl])
     }
 }
 
